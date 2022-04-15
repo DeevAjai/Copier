@@ -4,7 +4,7 @@
 #-------------------------------------------------------------------------------------------
 # History
 # DA 21-MAR-22 added addlog function and updated the program to copy a source file to destination with new/different file name
-
+# DA 15-APR-22 added directory copying
 #-------------------------------------------------------------------------------------------
 
 logf=~/Copier/copier.log
@@ -135,27 +135,53 @@ fi
 # Main loop
 #-------------------------------------------------------------------------------------------
 # echo "Main loop"
-for i in $(seq 0 `expr $fileno - 1` );
-do
-	if [[ $FILE != True ]];then
-		dest=$(echo ${files[$i]} | rev | cut -d "/" -f 1 | rev)
-		if [[ $dest_folder != 0 ]];then
-			dest=$dest_folder$dest
+copyfiles()
+{
+	for i;
+	do
+		if [[ -d $i ]];then
+			dest=$(echo $i | rev | cut -d "/" -f 1 | rev)
+			if [[ $dest_folder != 0 ]];then
+				dest=$dest_folder$dest
+			fi
+			if [[ ! -d $dest ]];then
+				mkdir "$dest"
+			fi
+			dest_folder=$dest
+			if [[ $(echo $dest_folder | grep "/$" | wc -l ) == 0 ]];then
+				dest_folder=$dest_folder"/"
+			fi
+			if [[ $(echo $i | grep "/$" | wc -l ) == 0 ]];then
+				src="$i/"
+			else
+				src="$i"
+			fi
+			#echo -e "$dest\n$dest_folder\n$i"
+			copyfiles "$src"*
+			continue
 		fi
-	fi
-	#echo $i
-	#src=$(echo ${files[$i]} | sed 's/\([^a-zA-Z0-9]\)/\\\1/g')
-	src=${files[$i]}
-	#echo "Source : "$src #${files[$i]}
-	#echo "Destination : "$dest
-	#echo $(echo "$i" | grep "^[^-]")
-	#echo $(echo "$i" | wc -m > 2)
-	copy "$src" "$dest"
-	#echo ${option[@]} | grep "[- ]*r" | wc -l
-	if [[ $REMOVE == True ]];then
-		remove "$src" "$dest" &
-	fi
-done
+		if [[ $FILE != True ]];then
+			dest=$(echo $i | rev | cut -d "/" -f 1 | rev)
+			if [[ $dest_folder != 0 ]];then
+				dest=$dest_folder$dest
+			fi
+		fi
+		#echo $i
+		#src=$(echo ${files[$i]} | sed 's/\([^a-zA-Z0-9]\)/\\\1/g')
+		src="$i"
+		#echo "Source : "$src #${files[$i]}
+		#echo "Destination : "$dest
+		#echo $(echo "$i" | grep "^[^-]")
+		#echo $(echo "$i" | wc -m > 2)
+		copy "$src" "$dest"
+		#echo ${option[@]} | grep "[- ]*r" | wc -l
+		if [[ $REMOVE == True ]];then
+			remove "$src" "$dest" &
+		fi
+	done
+}
+#echo "${files[@]}"
+copyfiles "${files[@]}"
 #-------------------------------------------------------------------------------------------
 wait
 
